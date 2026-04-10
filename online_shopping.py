@@ -1,3 +1,4 @@
+import time
 grocery_prices = {
     "Milk (1 gal)": 3.99,
     "Eggs (1 doz)": 2.49,
@@ -24,658 +25,342 @@ shopping_list=[ {
     'Item': 'Wireless Mouse',
     'Price': 25.50,
     'Quantity': 2,
-    'Total': f'{25.50 * 2:.2f}'
+    'Total': round(25.50 * 2,2)
 },{
     'Item': 'Mechanical Keyboard',
     'Price': 89.99,
     'Quantity': 1,
-    'Total': f'{89.99 * 1:.2f}'
+    'Total': round(89.99 * 1,2)
 }, {
     'Item': 'USB-C Hub',
     'Price': 45.00,
     'Quantity': 3,
-    'Total': f'{45.00 * 3:.2f}'
+    'Total': round(45.00 * 3,2)
 }]
+
 #action information
 print('-'*10,'Enter 0 to stop simulation','-'*20)
 print('-'*10,'Enter 1 to add to shopping list','-'*20)
 print('-'*10,'Enter 2  to edit the shopping list-> This action only allows editing not deletion','-'*10)
 print('-'*10,'Enter 3 to delete from shopping list','-'*20)
 print('-'*10,'Enter p to proceed to checkout','-'*10)
-action_input=input('What would you like to do:')
-#functions for each action
-#function for adding items to shopping list
-def add_items():
-    print('-'*15,'Enter q to quit','-'*15)
-    print('-'*15,'Enter P to move to check out','-'*15)
+#Enter customer Budget then subtract it from total to be balanace
+def p_to_check_out():
+    print("\n Proceeding to checkout")
+    totals=[]
+    if shopping_list:
+        for i in shopping_list:
+            tot=i.get('Total','Key Not Found')
+            totals.append(tot)
+        final=round(sum(totals),2)
+        print(*shopping_list,sep='\n')
+        time.sleep(2)
+        print(f'\n Your shopping total is:${final}')
+    else:
+        print('🚨 Can not Proceed to Checking->Empty Shopping Cart')
+#input actions
+
+def unknown_action():
+    print("Error-> Unknown Command")
+
+
+def change_budget():
+    print('\n Proceeding to change the Budget')
     while True:
-        item_number_input=input('Please enter the NUMBER POSITION of the item you would like to add')
-        if item_number_input.lower().strip() =='q':
-            print('\n Quiting the shopping process')
+        new_budget_input=gate_keeper('Enter the new Budget:',input_actions)
+        try:
+            new_budget=float(new_budget_input)
+            return new_budget
+        except ValueError:
+            print('Error Invalid Input-> User ONly Numbers to Enter Budget')
+
+def quit():
+    print('-'*15,"Proceeding to Quit the Online shopping system",'-'*15)
+    time.sleep(3)
+    print('Bye!👋')
+
+
+def get_customer_budget():
+    while True:
+        customer_budget_input=gate_keeper('Enter Your budget for safer tracking',input_actions)
+        try:
+            customer_budget=float(customer_budget_input)
+            time.sleep(2)
+            print('Your Current Budget is:$',customer_budget)
+            return customer_budget
+        except ValueError:
+            print('\n 🚨Unsupported Input->Please use Numbers Only')
+
+
+
+def add_items():
+    print('\n Proceeding to Adding Items to shopping List')
+    time.sleep(2)
+    input_actions={
+            'p':p_to_check_out,
+            'q':quit
+        }
+    customer_budget=get_customer_budget()
+    while True:
+        item_index_input=gate_keeper('Enter the NUmber of item to be added to your shopping list->use Numbers please',input_actions)
+        if item_index_input:
+            if item_index_input in input_actions:
+                action=input_actions.get(item_index_input,unknown_action)
+                action()
+                break
+            else:
+                try:
+                    item_index=int(item_index_input)-1
+                    true_item=tuple(grocery_prices)[item_index]
+                except ValueError:
+                    print("\n 🚨 Unsupported Input Format->Please Use Numbers Only")
+                except IndexError:
+                    print('\n 🚨Index Out Of Bounds->NUmber Entered Does Not exist')
+        else:
+            print("Empty->Fill The Input Please")
+        item_price=grocery_prices.get(true_item,"Item does not Exist")
+        quantity_input=gate_keeper(f"How many {true_item}/s would you like? ",input_actions)
+        if quantity_input:
+            if quantity_input in input_actions:
+                action=input_actions.get(quantity_input,unknown_action)
+                action()
+                break
+            else:
+                try:
+                    quantity=int(quantity_input)
+                    print(true_item,item_price,quantity,round((item_price*quantity),2))
+                except ValueError:
+                    print("\n 🚨 Unsupported Input Format->Please Use Numbers Only")
+        else:
+            print("Empty Field->Fill The Input Please")
+        grocery_item={
+            'Item':true_item,
+            "Price":item_price,
+            "Quantity":quantity,
+            "Total":round((quantity*item_price),2)
+        }
+        print("\n Your Current shopping list")
+        shopping_list.append(grocery_item)
+        print(*shopping_list,sep='\n')
+        customer_budget=check_budget(customer_budget,shopping_list)
+
+
+def check_budget(customer_budget,list):
+    print("\n Proceeding to check customer's budget")
+    time.sleep(2)
+    tots=[]
+    if not list:
+        print('🚨Error->Shopping List is Empty can not proceed to Checkout')
+    else:
+        for i in list:
+            tots.append(i['Total'])
+        total_bill = sum(tots) 
+        if total_bill > customer_budget:
+            over = total_bill - customer_budget
+            print(f"⚠️ Warning: You are ${over:.2f} OVER BUDGET")
+            next_step=gate_keeper('What would you like to do to chage this\n1: Change_budget\n2: Change_quantity \n:q Quit',input_actions)
+            if next_step =='1':
+                print(f'\n You need {customer_budget+over} to catch up to your current shopping Total')
+                customer_budget=change_budget()
+                print(f'Your New Budget is:{customer_budget}')
+                return check_budget(customer_budget,list)
+            elif next_step=='2':
+                item_pos=get_item_from_list()
+                if item_pos is not None:
+                    quantity_change(item_pos)
+            elif next_step=='q':
+                quit()
+        elif total_bill < customer_budget:
+            leftover = customer_budget - total_bill
+            print(f"✅ You have ${leftover:.2f} remaining.")
+        else:
+            print("🎯 You are exactly on budget!")
+
+
+def delete_items():
+    input_actions={
+            'p':p_to_check_out,
+            'q':quit
+        }
+    print("\n Proceeding to Delete Items from the shopping List")
+    time.sleep(2)
+    while True:
+        print('\n')
+        for num ,i in enumerate(shopping_list,1):
+            print(f"{num}:{i}")
+        position_to_delete=gate_keeper('Enter the Position For the item You would like to Delete?',input_actions)
+        if position_to_delete:
+            if position_to_delete in input_actions:
+                action=input_actions.get(position_to_delete,unknown_action)
+                action()
+                break
+            else:
+                try:
+                    pos=int(position_to_delete)-1
+                    item_removed=shopping_list.pop(pos)
+                    print(f"\n Item Removed:{item_removed}")
+                except IndexError:
+                    print('\n 🚨Index Out Of Bounds->NUmber Entered Does Not exist')
+                except ValueError:
+                    print("\n 🚨 Unsupported Input Format->Please Use Numbers Only")
+        else:
+            print("🚨Empty Field-> Fill the Input Field")
+
+
+def get_item_from_list():
+    for num, i in enumerate(shopping_list,1):
+        print(num,i)
+    while True:
+        item_position_input=gate_keeper('Enter the position of the Item Quantity you would like to change?',input_actions)
+        if item_position_input:
+            if item_position_input in input_actions:
+                action=input_actions.get(item_position_input,unknown_action)
+                action()
+                break
+            else:
+                try:
+                    item_pos=int(item_position_input)-1
+                    true_item=shopping_list[item_pos]
+                    print(true_item)
+                    print(f"proceeding to change:\"{true_item.get('Item','Key Not Found')}\"from \"{true_item.get('Quantity','Key Not Found')}\"")
+                    break
+                except ValueError:
+                    print('\n 🚨Unsupported Input->Please use Numbers Only')
+                except IndexError:
+                    print('\n 🚨Index Out Of Bounds->NUmber Entered Does Not exist')
+        else:
+            print("🚨Empty Field-> Fill the Input Field")
+    return item_pos
+
+
+def item_change(item_pos):
+    print('\n Proceeding to change the Item')
+    input_actions={
+            'p':p_to_check_out,
+            'q':quit
+        }
+    for num, i in enumerate(shopping_list,1):
+        print(num,i)
+    print(f"Changing Name for: {shopping_list[item_pos]['Item']}")
+    while True:
+        new_item_position=gate_keeper('Enter the Position of the new item you would like ?',input_actions)
+        if new_item_position:
+            if new_item_position in input_actions:
+                action=input_actions.get(new_item_position,unknown_action)
+                action()
+                break
+            else:
+                try:
+                    new_item=int(new_item_position)-1
+                    item_name=tuple(grocery_prices)[new_item]
+                    item_price=grocery_prices.get(item_name,'Key Not Found')
+                    choosen_item=shopping_list[item_pos]
+                    choosen_item["Item"]=item_name
+                    choosen_item["Price"]=item_price
+                    choosen_item["Total"]=round((item_price*choosen_item["Quantity"]),2)
+                    print('Item change successful')
+                    print(*shopping_list,sep='\n')
+                    break
+                except ValueError:
+                    print('\n 🚨Unsupported Input->Please use Numbers Only')
+                except IndexError:
+                    print('\n 🚨Index Out Of Bounds->NUmber Entered Does Not exist')
+        else:
+            print("🚨Empty Field-> Fill the Input Field")
+
+
+def quantity_change(item_pos):
+    print("\n Proceeding to change the item's Quantity")
+    while True:
+        new_item_position_quantity=gate_keeper('Enter the New Quantity?',input_actions)
+        if new_item_position_quantity:
+            if new_item_position_quantity in input_actions:
+                action=input_actions.get(new_item_position_quantity,unknown_action)
+                action()
+                break
+            else:
+                try:
+                    new_quantity=int(new_item_position_quantity)
+                    choosen_item=shopping_list[item_pos]
+                    choosen_item["Quantity"]=new_quantity
+                    choosen_item["Total"]=round((choosen_item["Price"]*new_quantity),2)
+                    print('Item change successful')
+                    print(*shopping_list,sep='\n')
+                    break
+                except ValueError:
+                    print('\n 🚨Unsupported Input->Please use Numbers Only')
+                except IndexError:
+                    print('\n 🚨Index Out Of Bounds->NUmber Entered Does Not exist')
+        else:
+            print("🚨Empty Field-> Fill the Input Field")
+#return value and use it as argument for Edit funcion
+
+def edit_list():
+    while True:
+        print("\n--- Edit Menu ---")
+        print("1: Change Item Name\n2: Change Quantity\n3: Change Both\nq: Back\n:p: Checkout")
+        
+        choice = input("Choice: ").strip().lower()
+        if choice == 'q':
             break
-        elif item_number_input.lower().strip() =='p':
-            print('-'*15,"Proceeding to Checkout",'-'*15)
+        elif choice == '1':
+            item_pos= get_item_from_list() 
+            if item_pos is not None:    
+                item_change(item_pos) 
+        elif choice == '2':
+            item_pos= get_item_from_list()
+            if item_pos is not None:
+                quantity_change(item_pos)
+        elif choice == '3':
+            item_pos= get_item_from_list()
+            if item_pos is not None:
+                item_quantity_change(item_pos)
+        elif choice=='p':
             p_to_check_out()
             break
         else:
-            try:
-                item_number=int(item_number_input)-1
-                true_item_key=tuple(grocery_prices.keys())[item_number]
-                true_item_value=tuple(grocery_prices.values())[item_number]
-                print(true_item_key,'at',true_item_value)
-                item_quantity_input=input(f'how many {true_item_key} would you like?')
-                if item_quantity_input.lower() =='q':
-                    print('\n Quiting the shopping process')
-                    break
-                elif item_quantity_input.lower().strip()=='p':
-                    print('-'*5,f"Proceeding to checkout now item:\"{true_item_key}\" won't be added to your shopping list->Quantity Unknown",'-'*5)
-                    confirmation=input("would you like to proceed to check out knowing this?(y=Yes|n=No)").lower().strip()
-                    if confirmation =='y':
-                        print('-'*15,"Proceeding to Checkout",'-'*15)
-                        p_to_check_out()
-                        break
-                    elif confirmation =='n':
-                        item_quantity_input=input(f'how many {true_item_key} would you like?')
-                        try:
-                            item_quantity=int(item_quantity_input)
-                            add_to_cart={
-                                'Item':true_item_key,
-                                "Price":true_item_value,
-                                "Quantity":item_quantity,
-                                "Total":f'{true_item_value*item_quantity:.2f}'
-                            }
-                            shopping_list.append(add_to_cart)
-                            print("Your current Shopping list")
-                            print(*shopping_list,sep='\n')
-                            #check bugdet after each item added to the shopping cart
-                            check_budget()
-                        except ValueError:
-                            print('Unsupported Input->Please use numbers Only',item_quantity_input)
-                    else:
-                        try:
-                            item_quantity=int(item_quantity_input)
-                            add_to_cart={
-                                'Item':true_item_key,
-                                "Price":true_item_value,
-                                "Quantity":item_quantity,
-                                "Total":f'{true_item_value*item_quantity:.2f}'
-                            }
-                            shopping_list.append(add_to_cart)
-                            print("Your current Shopping list")
-                            print(*shopping_list,sep='\n')
-                            #check bugdet after each item added to the shopping cart
-                            check_budget()
-                        except ValueError:
-                            print('Unsupported Input->Please use numbers Only',item_quantity_input)
-            except ValueError:
-                print('Unsupported Input->Please use numbers Only',item_number_input)
-            except IndexError:
-                print('Index Out Of Bounds->Number not in Grocery List',item_number_input)
+            print("🚨 Invalid Option. Please try again.")
 
-def check_budget():
-    tots=[]
-    for t in shopping_list:
-        tots.append(float(t['Total']))
-    total=sum(tots)
-    if total > customer_budget:
-        print(f'You have exceeded the budget by:{total- customer_budget:.2f}')
-        query=input('would you like to: A->Increase your budget| B Reduce your grocery|C add it to your credit card').lower().strip()
-        if query=='a':
-            new_budget=input(f'Please Enter the new Budget the old is:${total- customer_budget:.2f}short')
-            try:
-                new_customer_budget=float(new_budget)
-                print(f"\n Your new Budget has been changed from ${customer_budget:.2f} to:${new_customer_budget:.2f}")
-            except ValueError:
-                print('Please Enter Numbers only')
-        elif  query=='b':
-            print('Proceeding to edit your shopping list')
-            edit_list()
-        elif  query=='c':
-            print(f'\n While proceeding to check out you will have a credit balance of: ${total- customer_budget:.2f}')
-        else:
-            print('Please put input from given options')
-    else:
-        print(f'You have {customer_budget-total:.2f} left in your budget')
 
-def edit_list():
-    print('-'*15,"Proceeding to edit your shopping list",'-'*15)
-    print('-'*15,'Enter q to quit','-'*15)
-    print('-'*15,'Enter P to move to check out','-'*15)
-    #check if there are items in the shopping list
+def item_quantity_change(item_pos):
+    print("\n--- Step 1: Change the Item Name ---")
+    item_change(item_pos) 
+    
+    print("\n--- Step 2: Change the Quantity ---")
+    quantity_change(item_pos)
+    
+    print("\n✅ Both Item and Quantity updated successfully.")
+
+
+input_actions={
+    'p':p_to_check_out,
+    'q':quit,
+}
+user_actions={
+    '0':quit,
+    '1':add_items,
+    '2':edit_list,
+    '3':delete_items,
+}
+def gate_keeper(prompts,actions):
     while True:
-        if not shopping_list:
-            print("Sorry you can not edit your shppping list-> shopping list empty")
-        else:
-            part_edit_input=input("Enter-> 1=To edit Item| 2= To edit quantity| 3= To edit Both").lower().strip()
-            if part_edit_input =='p':
-                print('-'*15,"Proceeding to Checkout",'-'*15)
-                p_to_check_out()
-                break
-            elif part_edit_input== 'q':
-                print('-'*15,"Leaving the Editing Option",'-'*15)
-                break
-            elif part_edit_input=='1':
-                print(f"\n Proceeding to change Item")
-                founds=[]
-                for num,i in enumerate(shopping_list,1):
-                    founds.append(i['Item'])
-                    print(num,i)
-                item_change_input=input("which Item would you like to change->Enter Number of item to be changed").lower().strip()
-                if item_change_input=='p':
-                    print("Can not proceed to check out while editing shopping menu-> if you wish to shopping menu shall be kept as was")
-                    confirmation=input("would you like to proceed to check out knowing this?(y=Yes|n=No)").lower().strip()
-                    if confirmation =='y':
-                        print('-'*15,"Proceeding to Checkout",'-'*15)
-                        p_to_check_out()
-                        break
-                    elif confirmation =='n':
-                        item_change_input=input("which Item would you like to change->Enter Number of item to be changed").lower().strip()
-                        try:
-                            true_item_change_index=int(item_change_input)-1
-                            old_item=founds[true_item_change_index]
-                            new_item_pos=input(f"please Enter the number in which you want to change \"{old_item}\" to")
-                            if new_item_pos=='p':
-                                print("Can not proceed to check out while editing shopping menu-> if you wish to shopping menu shall be kept as was")
-                                confirmation=input("would you like to proceed to check out knowing this?(y=Yes|n=No)").lower().strip()
-                                if confirmation =='y':
-                                    print('-'*15,"Proceeding to Checkout",'-'*15)
-                                    p_to_check_out()
-                                    break
-                                elif confirmation =='n':
-                                    new_item_pos=input(f"\n please Enter the number in which you want to change \"{old_item}\" to")
-                                    try:
-                                        #fixed the bug and update code on the no confirmation
-                                        new_item_index=int(new_item_pos)-1
-                                        new_item_true_index=tuple(grocery_prices)[new_item_index]
-                                        new_item_price = grocery_prices.get(new_item_true_index, 0)
-                                        print(new_item_true_index,new_item_price)
-                                        print()
-                                        choosen_item=shopping_list[true_item_change_index]
-                                        choosen_item['Item']=new_item_true_index
-                                        choosen_item['Price']=new_item_price
-                                        choosen_item['Total']=f"{new_item_price*i['Quantity']:.2f}"
-                                        print('Your shoping list has been updated-> Both the item and the price')
-                                        print(*shopping_list,sep='\n')
-                                    except ValueError:
-                                        print("Please use Numbers Only")
-                                    except IndexError:
-                                        print('Index Out Of Bounds->Number entered does not exist')
-                            elif new_item_pos=='q':
-                                print("quiting the Editing process-> All items shall remain unchanged")
-                            else:
-                                try:
-                                    #fixed the bug and update code on the no confirmation
-                                    new_item_index=int(new_item_pos)-1
-                                    new_item_true_index=tuple(grocery_prices)[new_item_index]
-                                    new_item_price = grocery_prices.get(new_item_true_index, 0)
-                                    print(new_item_true_index,new_item_price)
-                                    print()
-                                    choosen_item=shopping_list[true_item_change_index]
-                                    choosen_item['Item']=new_item_true_index
-                                    choosen_item['Price']=new_item_price
-                                    choosen_item['Total']=f"{new_item_price*i['Quantity']:.2f}"
-                                    print('Your shoping list has been updated-> Both the item and the price')
-                                    print(*shopping_list,sep='\n')
-                                except ValueError:
-                                    print("Please use Numbers Only")
-                                except IndexError:
-                                    print('Index Out Of Bounds->Number entered does not exist')
-                        except ValueError:
-                            print('Unsupported INput->Use numbers only')
-                        except IndexError:
-                            print('Index Out Of Bounds->Number entered does not exist')
-                elif item_change_input =='q':
-                    print("quiting the Editing process-> All items shall remain unchange")
-                    break
-                else:
-                    try:
-                        true_item_change_index=int(item_change_input)-1
-                        old_item=founds[true_item_change_index]
-                        new_item_pos=input(f"please Enter the number in which you want to change \"{old_item}\" to")
-                        if new_item_pos=='p':
-                            print("Can not proceed to check out while editing shopping menu-> if you wish to shopping menu shall be kept as was")
-                            confirmation=input("would you like to proceed to check out knowing this?(y=Yes|n=No)").lower().strip()
-                            if confirmation =='y':
-                                print('-'*15,"Proceeding to Checkout",'-'*15)
-                                p_to_check_out()
-                            elif confirmation =='n':
-                                new_item_pos=input(f"\n please Enter the number in which you want to change \"{old_item}\" to")
-                                try:
-                                    #fixed the bug and update code on the no confirmation
-                                    new_item_index=int(new_item_pos)-1
-                                    new_item_true_index=tuple(grocery_prices)[new_item_index]
-                                    new_item_price = grocery_prices.get(new_item_true_index, 0)
-                                    print(new_item_true_index,new_item_price)
-                                    print()
-                                    choosen_item=shopping_list[true_item_change_index]
-                                    choosen_item['Item']=new_item_true_index
-                                    choosen_item['Price']=new_item_price
-                                    choosen_item['Total']=f"{new_item_price*i['Quantity']:.2f}"
-                                    print('Your shoping list has been updated-> Both the item and the price')
-                                    print(*shopping_list,sep='\n')
-                                except ValueError:
-                                    print("Please use Numbers Only")
-                                except IndexError:
-                                    print('Index Out Of Bounds->Number entered does not exist')
-                        elif new_item_pos=='q':
-                            print("quiting the Editing process-> All items shall remain unchanged")
-                        else:
-                            try:
-                                #fixed the bug and update code on the no confirmation
-                                new_item_index=int(new_item_pos)-1
-                                new_item_true_index=tuple(grocery_prices)[new_item_index]
-                                new_item_price = grocery_prices.get(new_item_true_index, 0)
-                                print(new_item_true_index,new_item_price)
-                                print()
-                                choosen_item=shopping_list[true_item_change_index]
-                                choosen_item['Item']=new_item_true_index
-                                choosen_item['Price']=new_item_price
-                                choosen_item['Total']=f"{new_item_price*i['Quantity']:.2f}"
-                                print('Your shoping list has been updated-> Both the item and the price')
-                                print(*shopping_list,sep='\n')
-                            except ValueError:
-                                print("Please use Numbers Only")
-                            except IndexError:
-                                print('Index Out Of Bounds->Number entered does not exist')
-                    except ValueError:
-                        print('Unsupported INput->Use numbers only')
-                    except IndexError:
-                        print('Index Out Of Bounds->Number entered does not exist')
-            elif part_edit_input=='2':
-                print('-'*15,"Proceeding to Quantity Editing",'-'*15)
-                founds_q=[]
-                for num,i in enumerate(shopping_list,1):
-                    founds_q.append(i['Quantity'])
-                    print(num,i)
-                product_for_quanity_change_input=input("Which product would you like to change it's Quantity-> Enter product Position")
-                if product_for_quanity_change_input.lower() =='p':
-                    print("Can not proceed to check out while editing shopping menu-> if you wish to shopping menu shall be kept as was")
-                    confirmation=input("would you like to proceed to check out knowing this?(y=Yes|n=No)").lower().strip()
-                    if confirmation =='y':
-                        print('-'*15,"Proceeding to Checkout",'-'*15)
-                        p_to_check_out()
-                        break
-                    elif confirmation =='n':
-                        product_for_quanity_change_input=input("Which product would you like to change it's Quantity-> Enter product Position")
-                        try:
-                            product_for_quanity_change=int(product_for_quanity_change_input)-1
-                            old_item_quantity=founds_q[product_for_quanity_change]
-                            choosen_item_q=shopping_list[product_for_quanity_change]
-                            new_quantity_change_to_input=input(f"you would like to change the amount of \"{choosen_item_q['Item']}\" from:\"{old_item_quantity}\" to?")
-                            if new_quantity_change_to_input.lower()=='p':
-                                print("Can not proceed to check out while editing shopping menu-> if you wish to shopping menu shall be kept as was")
-                                #include confirmation statements
-                            elif new_quantity_change_to_input.lower()=='q':
-                                print('-'*17,"Quiting the Quantity Change Process",'-'*17)
-                            else:
-                                try:
-                                    new_quantity_change_to=int(new_quantity_change_to_input)
-                                    choosen_item_q['Quantity']=new_quantity_change_to
-                                    choosen_item_q['Total']=round((choosen_item_q['Price']*new_quantity_change_to),2)
-                                    print('\n Updated Shopping List->Quantity Updated')
-                                    print(*shopping_list,sep='\n')
-                                except  ValueError:
-                                    print("Unsupported INput-> Use Numbers Positon Only")
-                        except  ValueError:
-                            print("Unsupported INput-> Use Numbers Positon Only")
-                elif product_for_quanity_change_input.lower()=='q':
-                    print('-'*17,'\n Quiting the Editing Process','-'*17)
-                    break
-                else:
-                    try:
-                        product_for_quanity_change=int(product_for_quanity_change_input)-1
-                        old_item_quantity=founds_q[product_for_quanity_change]
-                        choosen_item_q=shopping_list[product_for_quanity_change]
-                        new_quantity_change_to_input=input(f"you would like to change the amount of \"{choosen_item_q['Item']}\" from:\"{old_item_quantity}\" to?")
-                        if new_quantity_change_to_input.lower()=='p':
-                            print("Can not proceed to check out while editing shopping menu-> if you wish to shopping menu shall be kept as was")
-                            confirmation=input("would you like to proceed to check out knowing this?(y=Yes|n=No)").lower().strip()
-                            if confirmation =='y':
-                                print('-'*15,"Proceeding to Checkout",'-'*15)
-                                p_to_check_out()
-                            elif confirmation =='n':
-                                new_quantity_change_to_input=input(f"you would like to change the amount of \"{choosen_item_q['Item']}\" from:\"{old_item_quantity}\" to?")
-                                try:
-                                    new_quantity_change_to=int(new_quantity_change_to_input)
-                                    choosen_item_q['Quantity']=new_quantity_change_to
-                                    choosen_item_q['Total']=round((choosen_item_q['Price']*new_quantity_change_to),2)
-                                    print('\n Updated Shopping List->Quantity Updated')
-                                    print(*shopping_list,sep='\n')
-                                except  ValueError:
-                                    print("Unsupported INput-> Use Numbers Positon Only")
-                        elif new_quantity_change_to_input.lower()=='q':
-                            print('-'*17,"Quiting the Quantity Change Process",'-'*17)
-                        else:
-                            try:
-                                new_quantity_change_to=int(new_quantity_change_to_input)
-                                choosen_item_q['Quantity']=new_quantity_change_to
-                                choosen_item_q['Total']=round((choosen_item_q['Price']*new_quantity_change_to),2)
-                                print('\n Updated Shopping List->Quantity Updated')
-                                print(*shopping_list,sep='\n')
-                            except  ValueError:
-                                print("Unsupported INput-> Use Numbers Positon Only")
-                    except ValueError:
-                        print("Unsupported INput-> Use Numbers Positon Only")
-                    except IndexError:
-                        print("Index Out of Bounds-> The Number Entered does Not Exist")
-            elif part_edit_input=='3':
-                print('Proceeding to Edit Both Item and Quantity')
-                founds=[]
-                for num,i in enumerate(shopping_list,1):
-                    founds.append(i['Item'])
-                    print(num,i)
-                postion_item__to_change_input=input("Enter Position of item You would like to change")
-                if postion_item__to_change_input.lower()=='p':
-                    print("Can not proceed to check out while editing shopping menu-> if you wish to shopping menu shall be kept as was")
-                    confirmation=input("would you like to proceed to check out knowing this?(y=Yes|n=No)").lower().strip()
-                    if confirmation =='y':
-                        print('-'*15,"Proceeding to Checkout",'-'*15)
-                        p_to_check_out()
-                        break
-                    elif confirmation =='n':
-                        postion_item__to_change_input=input("Enter Position of item You would like to change")
-                        try:
-                            postion_item__to_change=int(postion_item__to_change_input)-1
-                            choosen_item_c=shopping_list[postion_item__to_change]
-                            print(choosen_item_c)
-                            new_item_change_pos_input=input('Enter Position of new_item')
-                            if new_item_change_pos_input.lower()=='p':
-                                print("Can not proceed to check out while editing shopping menu-> if you wish to shopping menu shall be kept as was")
-                                confirmation=input("would you like to proceed to check out knowing this?(y=Yes|n=No)").lower().strip()
-                                if confirmation =='y':
-                                    print('-'*15,"Proceeding to Checkout",'-'*15)
-                                    p_to_check_out()
-                                    break
-                                elif confirmation =='n':
-                                    new_item_change_pos_input=input('Enter Position of new_item')
-                                    try:
-                                        new_item_change_pos=int(new_item_change_pos_input)-1
-                                        grocery_item=tuple(grocery_prices)[new_item_change_pos]
-                                        grocery_price=grocery_prices.get(grocery_item,'Not Found')
-                                        print(grocery_item,grocery_price)
-                                        new_quantity_change_inp=input(f"How many{grocery_item} would you like?")
-                                        if new_quantity_change_inp.lower()=='p':
-                                            print("Can not proceed to check out while editing shopping menu-> if you wish to shopping menu shall be kept as was")
-                                            confirmation=input("would you like to proceed to check out knowing this?(y=Yes|n=No)").lower().strip()
-                                            if confirmation =='y':
-                                                print('-'*15,"Proceeding to Checkout",'-'*15)
-                                                p_to_check_out()
-                                                break
-                                            elif confirmation =='n':
-                                                new_quantity_change_inp=input(f"How many {grocery_item} would you like?")
-                                                try:
-                                                    new_quantity=int(new_quantity_change_inp)
-                                                    choosen_item_c['Item']=grocery_item
-                                                    choosen_item_c['Price']=grocery_price
-                                                    choosen_item_c['Quantity']=new_quantity
-                                                    choosen_item_c['Total']=round((grocery_price*new_quantity),2)
-                                                    print(*shopping_list,sep='\n')
-                                                except ValueError:
-                                                    print("Unsupported INput-> Use Numbers Positon Only")
-                                        elif new_quantity_change_inp.lower()=='q':
-                                            print('-'*18,'Quiting the Item Change','-'*18)
-                                        else:
-                                            try:
-                                                new_quantity=int(new_quantity_change_inp)
-                                                choosen_item_c['Item']=grocery_item
-                                                choosen_item_c['Price']=grocery_price
-                                                choosen_item_c['Quantity']=new_quantity
-                                                choosen_item_c['Total']=round((grocery_price*new_quantity),2)
-                                                print(*shopping_list,sep='\n')
-                                            except ValueError:
-                                                print("Unsupported INput-> Use Numbers Positon Only")
-                                    except ValueError:
-                                        print("Unsupported INput-> Use Numbers Positon Only")
-                                    except IndexError:
-                                        print("Index Out of Bounds-> The Number Entered does Not Exist")
-                            elif new_item_change_pos_input.lower()=='q':
-                                print('-'*18,'Quiting the Item Change','-'*18)
-                                break
-                            else:
-                                try:
-                                    new_item_change_pos=int(new_item_change_pos_input)-1
-                                    grocery_item=tuple(grocery_prices)[new_item_change_pos]
-                                    grocery_price=grocery_prices.get(grocery_item,'Not Found')
-                                    print(grocery_item,grocery_price)
-                                    new_quantity_change_inp=input(f"How many{grocery_item} would you like?")
-                                    if new_quantity_change_inp.lower()=='p':
-                                        print("Can not proceed to check out while editing shopping menu-> if you wish to shopping menu shall be kept as was")
-                                        confirmation=input("would you like to proceed to check out knowing this?(y=Yes|n=No)").lower().strip()
-                                        if confirmation =='y':
-                                            print('-'*15,"Proceeding to Checkout",'-'*15)
-                                            p_to_check_out()
-                                        elif confirmation =='n':
-                                            new_quantity_change_inp=input(f"How many{grocery_item} would you like?")
-                                            try:
-                                                new_quantity=int(new_quantity_change_inp)
-                                                choosen_item_c['Item']=grocery_item
-                                                choosen_item_c['Price']=grocery_price
-                                                choosen_item_c['Quantity']=new_quantity
-                                                choosen_item_c['Total']=round((grocery_price*new_quantity),2)
-                                                print(*shopping_list,sep='\n')
-                                            except ValueError:
-                                                print("Unsupported INput-> Use Numbers Positon Only")
-                                    elif new_quantity_change_inp.lower()=='q':
-                                        print('-'*18,'Quiting the Item Change','-'*18)
-                                    else:
-                                        try:
-                                            new_quantity=int(new_quantity_change_inp)
-                                            choosen_item_c['Item']=grocery_item
-                                            choosen_item_c['Price']=grocery_price
-                                            choosen_item_c['Quantity']=new_quantity
-                                            choosen_item_c['Total']=round((grocery_price*new_quantity),2)
-                                            print(*shopping_list,sep='\n')
-                                        except ValueError:
-                                            print("Unsupported INput-> Use Numbers Positon Only")
-                                except ValueError:
-                                    print("Unsupported INput-> Use Numbers Positon Only")
-                                except IndexError:
-                                    print("Index Out of Bounds-> The Number Entered does Not Exist")
-                        except ValueError:
-                            print("Unsupported INput-> Use Numbers Positon Only")
-                        except IndexError:
-                            print("Index Out of Bounds-> The Number Entered does Not Exist")
-                elif postion_item__to_change_input.lower()=='q':
-                    print('-'*18,'Quiting the Item Change','-'*18)
-                    break
-                else:
-                    try:
-                        postion_item__to_change=int(postion_item__to_change_input)-1
-                        choosen_item_c=shopping_list[postion_item__to_change]
-                        print(choosen_item_c)
-                        new_item_change_pos_input=input('Enter Position of new_item')
-                        if new_item_change_pos_input.lower()=='p':
-                            print("Can not proceed to check out while editing shopping menu-> if you wish to shopping menu shall be kept as was")
-                            confirmation=input("would you like to proceed to check out knowing this?(y=Yes|n=No)").lower().strip()
-                            if confirmation =='y':
-                                print('-'*15,"Proceeding to Checkout",'-'*15)
-                                p_to_check_out()
-                                break
-                            elif confirmation =='n':
-                                new_item_change_pos_input=input('Enter Position of new_item')
-                                try:
-                                    new_item_change_pos=int(new_item_change_pos_input)-1
-                                    grocery_item=tuple(grocery_prices)[new_item_change_pos]
-                                    grocery_price=grocery_prices.get(grocery_item,'Not Found')
-                                    print(grocery_item,grocery_price)
-                                    new_quantity_change_inp=input(f"How many{grocery_item} would you like?")
-                                    if new_quantity_change_inp.lower()=='p':
-                                        print("Can not proceed to check out while editing shopping menu-> if you wish to shopping menu shall be kept as was")
-                                        confirmation=input("would you like to proceed to check out knowing this?(y=Yes|n=No)").lower().strip()
-                                        if confirmation =='y':
-                                            print('-'*15,"Proceeding to Checkout",'-'*15)
-                                            p_to_check_out()
-                                            break
-                                        elif confirmation =='n':
-                                            new_quantity_change_inp=input(f"How many{grocery_item} would you like?")
-                                            try:
-                                                new_quantity=int(new_quantity_change_inp)
-                                                choosen_item_c['Item']=grocery_item
-                                                choosen_item_c['Price']=grocery_price
-                                                choosen_item_c['Quantity']=new_quantity
-                                                choosen_item_c['Total']=round((grocery_price*new_quantity),2)
-                                                print(*shopping_list,sep='\n')
-                                            except ValueError:
-                                                print("Unsupported INput-> Use Numbers Positon Only")
-                                    elif new_quantity_change_inp.lower()=='q':
-                                        print('-'*18,'Quiting the Item Change','-'*18)
-                                        break
-                                    else:
-                                        try:
-                                            new_quantity=int(new_quantity_change_inp)
-                                            choosen_item_c['Item']=grocery_item
-                                            choosen_item_c['Price']=grocery_price
-                                            choosen_item_c['Quantity']=new_quantity
-                                            choosen_item_c['Total']=round((grocery_price*new_quantity),2)
-                                            print(*shopping_list,sep='\n')
-                                        except ValueError:
-                                            print("Unsupported INput-> Use Numbers Positon Only")
-                                except ValueError:
-                                    print("Unsupported INput-> Use Numbers Positon Only")
-                                except IndexError:
-                                    print("Index Out of Bounds-> The Number Entered does Not Exist")
-                        elif new_item_change_pos_input.lower()=='q':
-                            print('-'*18,'Quiting the Item Change','-'*18)
-                            break
-                        else:
-                            try:
-                                new_item_change_pos=int(new_item_change_pos_input)-1
-                                grocery_item=tuple(grocery_prices)[new_item_change_pos]
-                                grocery_price=grocery_prices.get(grocery_item,'Not Found')
-                                print(grocery_item,grocery_price)
-                                new_quantity_change_inp=input(f"How many{grocery_item} would you like?")
-                                if new_quantity_change_inp.lower()=='p':
-                                    print("Can not proceed to check out while editing shopping menu-> if you wish to shopping menu shall be kept as was")
-                                    confirmation=input("would you like to proceed to check out knowing this?(y=Yes|n=No)").lower().strip()
-                                    if confirmation =='y':
-                                        print('-'*15,"Proceeding to Checkout",'-'*15)
-                                        p_to_check_out()
-                                        break
-                                    elif confirmation =='n':
-                                        new_quantity_change_inp=input(f"How many{grocery_item} would you like?")
-                                        try:
-                                            new_quantity=int(new_quantity_change_inp)
-                                            choosen_item_c['Item']=grocery_item
-                                            choosen_item_c['Price']=grocery_price
-                                            choosen_item_c['Quantity']=new_quantity
-                                            choosen_item_c['Total']=round((grocery_price*new_quantity),2)
-                                            print(*shopping_list,sep='\n')
-                                        except ValueError:
-                                            print("Unsupported INput-> Use Numbers Positon Only")
-                                elif new_quantity_change_inp.lower()=='q':
-                                    print('-'*18,'Quiting the Item Change','-'*18)
-                                    break
-                                else:
-                                    try:
-                                        new_quantity=int(new_quantity_change_inp)
-                                        choosen_item_c['Item']=grocery_item
-                                        choosen_item_c['Price']=grocery_price
-                                        choosen_item_c['Quantity']=new_quantity
-                                        choosen_item_c['Total']=round((grocery_price*new_quantity),2)
-                                        print(*shopping_list,sep='\n')
-                                    except ValueError:
-                                        print("Unsupported INput-> Use Numbers Positon Only")
-                            except ValueError:
-                                print("Unsupported INput-> Use Numbers Positon Only")
-                            except IndexError:
-                                print("Index Out of Bounds-> The Number Entered does Not Exist")
-                    except ValueError:
-                        print("Unsupported INput-> Use Numbers Positon Only")
-                    except IndexError:
-                        print("Index Out of Bounds-> The Number Entered does Not Exist")
-            else:
-                print("Unsupported INput-> Use Numbers Provided Only")
-
-def delete_item():
-    print('-'*20,"Proceeding to Item Deletion",'-'*20)
-    founds=[]
-    deleted_items=[]
-    while True:
-        for num,i in enumerate(shopping_list,1):
-            founds.append(i)
-            print(num,i)
-        choosen_item_input_pos=input('Enter postion for item you want to delete')
-        if choosen_item_input_pos.lower()=='p':
-            print("Can not proceed to check out while editing shopping menu-> if you wish to shopping menu shall be kept as was")
-            confirmation=input("would you like to proceed to check out knowing this?(y=Yes|n=No)").lower().strip()
-            if confirmation =='y':
-                print('-'*15,"Proceeding to Checkout",'-'*15)
-                p_to_check_out()
-                break
-            elif confirmation =='n':
-                choosen_item_input_pos=input('Enter postion for item you want to delete')
-                try:
-                    choosen_item_pos=int(choosen_item_input_pos)-1
-                    removed_item = shopping_list.pop(choosen_item_pos)
-                    deleted_items.append(removed_item)
-                    print('-'*15,'Updated your shopping List','-'*15)
-                    print(*shopping_list,sep='\n')
-                    print('-----  Deleted Items List->Items shall be stored for 2days before permanent Deletion  -----')
-                    print(*deleted_items,sep='\n')
-                except ValueError:
-                    print("Unsupported INput-> Use Numbers Provided Only")
-                except IndexError:
-                    print("Index Out of Bounds-> The Number Entered does Not Exist")
-        elif choosen_item_input_pos.lower()=='q':
-            print('-'*15,"Quiting the Deletion Process",'-'*15)
-            break
-        else:
-            try:
-                choosen_item_pos=int(choosen_item_input_pos)-1
-                removed_item = shopping_list.pop(choosen_item_pos)
-                deleted_items.append(removed_item)
-                print('-'*15,'Updated your shopping List','-'*15)
-                print(*shopping_list,sep='\n')
-                print('-----  Deleted Items List->Items shall be stored for 2days before permanent Deletion  -----')
-                print(*deleted_items,sep='\n')
-            except ValueError:
-                print("Unsupported INput-> Use Numbers Provided Only")
-            except IndexError:
-                print("Index Out of Bounds-> The Number Entered does Not Exist")
-
-def p_to_check_out():
-    if not shopping_list:
-        print('\n Shopping List is Empty ')
-        ques=input("->Would you like to shop?Enter: y=yes | n=No").lower().strip()
-        if ques=='y':
-            add_items()
-        elif ques=='n':
-            totals=[]
-            for num, i in enumerate(shopping_list,1):
-                totals.append(float(i["Total"]))
-                print(num,i)
-            tots=sum(totals)
-            print(f"Shopping Total:${tots:.2f}")
-    else:
-        totals=[]
-        for num, i in enumerate(shopping_list,1):
-            totals.append(float(i["Total"]))
-            print(num,i)
-        tots=sum(totals)
-        print(f"Shopping Total:${tots:.2f}")
-        
-# function for checking users desired action
-
-if action_input =='0':
-    print('-'*15,'Quiting Online shopping','-'*15)
-elif action_input=='1':
-    while True:
-        customer_budget_input=input("Please Enter your Budget to Total Trackig purposes")
+        user_input=input(prompts).lower().strip()
+        if not user_input:
+            print('Error-> Empty Input:Please fill the field')
+            continue
+        if user_input in actions:
+            return user_input
         try:
-            customer_budget=float(customer_budget_input)
-            print(f"Your budget is: ${customer_budget:.2f}")
-            break
+            float(user_input)
+            return user_input
         except ValueError:
-            print('Invalid amount',customer_budget_input,'please try again')
-        print('Proceeding to Add items to the shopping list')
-    add_items()
-elif action_input=='2':
-    edit_list()
-elif action_input=='3':
-    delete_item()
-elif action_input.lower()=='p':
-    p_to_check_out()
-else:
-    print('Invalid action command',action_input)
-    print('Please try again')
-    #function for trying again
+            print('Error-> Use Number Only')
+        else:
+            print('Error -> Invalid option Entered by the User')
+def main(user_actions):
+    while True:
+        choice=gate_keeper('What would you like to do',input_actions)
+        action=user_actions.get(choice,unknown_action)
+        action()
+
+main(user_actions)
